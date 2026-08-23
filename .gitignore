@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+.DS_Store
+.vscode/
+*.log
+data/
+checkpoints/
+models/
+outputs/*/output_*.jsonl
+!outputs/bvr_top5_pad025.jsonl
