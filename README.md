@@ -45,14 +45,14 @@ The default setting `k=5`, `alpha=0.25` balances boundary coverage against effec
 
 ```text
 BVR/
-??? scripts/
-?   ??? infer_bvr.py        # Two-pass BVR inference
-?   ??? evaluate.py         # QVHighlights metric evaluation
-??? outputs/
-?   ??? bvr_top5_pad025.jsonl  # Example predictions
-??? requirements.txt
-??? LICENSE
-??? README.md
+|-- scripts/
+|   |-- infer_bvr.py        # Two-pass BVR inference
+|   |-- evaluate.py         # QVHighlights metric evaluation
+|-- outputs/
+|   +-- bvr_top5_pad025.jsonl  # Example predictions
+|-- requirements.txt
+|-- LICENSE
++-- README.md
 ```
 
 ---
@@ -208,3 +208,5 @@ This project is released under the [BSD-3-Clause License](LICENSE).
 ## Acknowledgement
 
 We thank the QVHighlights dataset and the upstream VideoMind project for providing the grounding codebase and checkpoints used in this work.
+
+
