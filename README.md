@@ -10,15 +10,19 @@
 
 ---
 
-## Overview
+## 📌 Overview
 
-BVR addresses the frame-resolution tradeoff in multimodal large language model (MLLM) temporal grounding. Uniform global sampling cannot provide enough temporal detail near event boundaries, while uniformly dense sampling is often infeasible under a fixed GPU memory budget.
+**BVR** is a lightweight temporal grounding framework built on top of [VideoMind](https://github.com/yeliudev/VideoMind). It targets a practical problem in multimodal large language model (MLLM) grounding:
 
-BVR keeps the peak memory cost of a single inference pass and restores temporal resolution only around predicted event regions:
+- Uniform global sampling cannot provide enough temporal detail near event boundaries.
+- Uniformly dense sampling often exceeds the available GPU memory budget.
+- Existing coarse-to-fine refinement can dilute effective frame rate when the crop window is too wide.
+
+BVR addresses these limitations with a training-free two-pass design:
 
 1. **Pass 1: Global coarse grounding.** The frozen MLLM localizes the query on the full video with a coarse sampling rate.
-2. **Temporal cluster construction.** The top-*k* predictions are merged into one compact temporal cluster.
-3. **Crop window construction.** The cluster is expanded by a padding ratio alpha to retain boundary coverage.
+2. **Temporal cluster construction.** The top-k predictions are merged into one compact temporal cluster.
+3. **Crop window construction.** The cluster is expanded by a padding ratio alpha to preserve boundary coverage.
 4. **Pass 2: Dense boundary refinement.** The same frozen MLLM re-grounds the query on the cropped segment at a higher effective frame rate.
 5. **Prediction merging.** Pass 1 and Pass 2 predictions are merged and sorted by confidence.
 
@@ -26,12 +30,12 @@ The method requires no training, no model modification, and no additional peak G
 
 ---
 
-## Key Design
+## 🔑 Key Design
 
 | Component | Description |
 |---|---|
 | Global grounding | Full-video sampling at 1.0 fps with 64 frames |
-| Prediction cluster | Top-*k* predictions merged by min start and max end |
+| Prediction cluster | Top-k predictions merged by min start and max end |
 | Padding ratio | alpha = 0.25 by default |
 | Refinement pass | Crop-window sampling at 2.0 fps with 64 frames |
 | Prediction merge | Concatenate coarse and refined candidates, sort by confidence |
@@ -41,28 +45,28 @@ The default setting `k=5`, `alpha=0.25` balances boundary coverage against effec
 
 ---
 
-## Repository Structure
+## 🏗️ Repository Structure
 
 ```text
 BVR/
-|-- scripts/
-|   |-- infer_bvr.py        # Two-pass BVR inference
-|   |-- evaluate.py         # QVHighlights metric evaluation
-|-- outputs/
-|   +-- bvr_top5_pad025.jsonl  # Example predictions
-|-- requirements.txt
-|-- LICENSE
-+-- README.md
+├── scripts/
+│   ├── infer_bvr.py        # Two-pass BVR inference
+│   └── evaluate.py         # QVHighlights metric evaluation
+├── outputs/
+│   └── bvr_top5_pad025.jsonl  # Example predictions
+├── requirements.txt
+├── LICENSE
+└── README.md
 ```
 
 ---
 
-## Installation
+## 📦 Installation
 
 ### Prerequisites
 
 - Python >= 3.10
-- CUDA-compatible GPU with at least 45 GB memory for the 7B model
+- CUDA 11.8 or newer on NVIDIA GPUs, or an Ascend NPU environment
 - PyTorch >= 2.0
 - QVHighlights videos and annotations
 
@@ -75,7 +79,7 @@ cd BVR
 
 ### 2. Prepare the base MLLM grounding environment
 
-The inference script imports the `videomind` package from the base MLLM grounding codebase. Install that codebase according to its own instructions first:
+The inference script imports the `videomind` package from [VideoMind](https://github.com/yeliudev/VideoMind). Install that codebase according to its own instructions first:
 
 ```bash
 git clone https://github.com/yeliudev/VideoMind.git
@@ -117,7 +121,7 @@ The annotation file is expected to contain `vid`, `qid`, `query`, and `relevant_
 
 ---
 
-## Usage
+## 🚀 Quick Start
 
 ### Run BVR inference
 
@@ -143,7 +147,22 @@ Each line is a JSON object:
 {"vid": "video_id", "qid": 0, "pred_relevant_windows": [[start, end, confidence], ...]}
 ```
 
-### Evaluate the predictions
+### Key arguments
+
+| Argument | Description |
+|---|---|
+| `--pred_path` | Output directory for the prediction JSONL file |
+| `--model_gnd_path` | Path to the grounding MLLM checkpoint |
+| `--crop_mode` | Number of coarse predictions used to build the cluster |
+| `--pad_ratio` | Padding added to both sides of the cluster |
+| `--num_threads` | Video decoding threads |
+| `--device` | Inference device, e.g. `cuda:0` |
+
+---
+
+## 🔮 Evaluation
+
+Evaluate the generated predictions:
 
 ```bash
 python scripts/evaluate.py \
@@ -151,11 +170,16 @@ python scripts/evaluate.py \
   data/qvhighlights/highlight_val_release.jsonl
 ```
 
-The evaluator prints `R1@0.3`, `R1@0.5`, `R1@0.7`, `R5@0.3`, `R5@0.5`, `R5@0.7`, `mAP@0.3`, `mAP@0.5`, `mAP@0.7`, and `mIoU`.
+The evaluator reports:
+
+- R1@0.3, R1@0.5, R1@0.7
+- R5@0.3, R5@0.5, R5@0.7
+- mAP@0.3, mAP@0.5, mAP@0.7
+- mIoU
 
 ---
 
-## Hyperparameters
+## ⚙️ Hyperparameters
 
 | Argument | Values | Default | Description |
 |---|---|---|---|
@@ -168,7 +192,7 @@ The paper uses `top5_cluster` and `pad_ratio=0.25`. BVR skips the refinement pas
 
 ---
 
-## Main Results
+## 📊 Main Results
 
 Results on the QVHighlights validation set (1,550 video-query pairs):
 
@@ -190,7 +214,7 @@ Results on the QVHighlights validation set (1,550 video-query pairs):
 
 ---
 
-## Reproducibility Notes
+## 📌 Reproducibility Notes
 
 - Both passes process 64 frames at 36x28x28 to 64x28x28 pixels.
 - Pass 1 samples at 1.0 fps on the full video.
@@ -201,12 +225,24 @@ Results on the QVHighlights validation set (1,550 video-query pairs):
 
 ---
 
-## License
+## 📖 Citation
+
+If you find this work helpful, please cite our paper:
+
+```bibtex
+@misc{bvr2026,
+  title={BVR: Training-Free Boundary-Verified Refinement for Video Temporal Grounding},
+  author={Anonymous Authors},
+  year={2026}
+}
+```
+
+---
+
+## 📜 License
 
 This project is released under the [BSD-3-Clause License](LICENSE).
 
-## Acknowledgement
+## 🙏 Acknowledgement
 
-We thank the QVHighlights dataset and the upstream VideoMind project for providing the grounding codebase and checkpoints used in this work.
-
-
+We thank the QVHighlights dataset and the upstream [VideoMind](https://github.com/yeliudev/VideoMind) project for providing the grounding codebase and checkpoints used in this work.
