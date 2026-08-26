@@ -1,6 +1,8 @@
 torch>=2.0
 transformers
+accelerate
 peft
 nncore
 decord
+huggingface-hub
 
