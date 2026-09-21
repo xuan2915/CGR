@@ -273,7 +273,7 @@ Medians over the 1,550 validation queries, recovered from the crop geometry each
 | CGR (top3, alpha=0.15) | 60 | 40% | 1.07 | 10.8% |
 | CGR (top3, alpha=0.35) | 73 | 49% | 0.88 | 17.1% |
 
-The window is wider than the cluster itself because one low-confidence candidate can stretch the cluster across most of the video; this is why the naive top-10 setting refines 87% of the video and is slower than dense 96-frame sampling. Accuracy peaks at the intermediate windows around the default setting.
+The window is wider than the cluster itself because a couple of low-confidence candidates that agree with neither the top-5 nor each other can stretch the cluster across most of the video; this is why the naive top-10 setting refines 87% of the video and is slower than dense 96-frame sampling. Accuracy peaks at the intermediate windows around the default setting.
 
 ---
 
