@@ -7,4 +7,4 @@ data/
 checkpoints/
 models/
 outputs/*/output_*.jsonl
-!outputs/bvr_top5_pad025.jsonl
+!outputs/cgr_top5_pad025.jsonl

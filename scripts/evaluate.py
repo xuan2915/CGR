@@ -1,4 +1,11 @@
-"""Standalone QVHighlights evaluator - no nncore dependency."""
+"""Standalone QVHighlights evaluator - no nncore dependency.
+
+Reports R1, R5 and mAP at IoU thresholds 0.3 / 0.5 / 0.7 plus the mean best-IoU
+of the top-1 prediction, which is the mIoU column of the paper.
+
+    python scripts/evaluate.py outputs/cgr_top5_pad025.jsonl \
+        data/qvhighlights/highlight_val_release.jsonl
+"""
 import json, sys, os
 from collections import defaultdict
 
@@ -64,28 +71,27 @@ def load_gts(path):
 def evaluate(pred_path, gt_path):
     preds = load_preds(pred_path)
     gts = load_gts(gt_path)
-    
+
     results = {}
     for thr in [0.3, 0.5, 0.7]:
         r1_hits = 0
         r5_hits = 0
         total = 0
         maps = []
-        mious = []
-        
+
         for p in preds:
             key = (p["vid"], p["qid"])
             if key not in gts: continue
             gt_windows = gts[key]
             pred_windows = p["pred_relevant_windows"]
             total += 1
-            
+
             # R1: top-1 prediction hits any GT
             if len(pred_windows) > 0:
                 top1 = pred_windows[0]
                 r1_hit = any(compute_iou(top1[:2], g) >= thr for g in gt_windows)
                 if r1_hit: r1_hits += 1
-            
+
             # R5: any of top-5 hits any GT
             if len(pred_windows) >= 5:
                 top5 = pred_windows[:5]
@@ -97,26 +103,32 @@ def evaluate(pred_path, gt_path):
                     r5_hit = True
                     break
             if r5_hit: r5_hits += 1
-            
+
             # mAP
             maps.append(compute_map(pred_windows[:100], gt_windows, thr))
-            
-            # mIoU: best IoU for top-1
-            if len(pred_windows) > 0:
-                top1 = pred_windows[0]
-                best_iou = max(compute_iou(top1[:2], g) for g in gt_windows) if gt_windows else 0.0
-                mious.append(best_iou)
-        
+
         results[f"R1@{thr}"] = 100.0 * r1_hits / total if total > 0 else 0
         results[f"R5@{thr}"] = 100.0 * r5_hits / total if total > 0 else 0
         results[f"mAP@{thr}"] = 100.0 * sum(maps) / len(maps) if maps else 0
-        results[f"mIoU@{thr}"] = 100.0 * sum(mious) / len(mious) if mious else 0
-    
+
+    # mIoU: best IoU of the top-1 prediction, independent of any threshold
+    mious = []
+    for p in preds:
+        key = (p["vid"], p["qid"])
+        if key not in gts: continue
+        gt_windows = gts[key]
+        pred_windows = p["pred_relevant_windows"]
+        if not pred_windows or not gt_windows:
+            mious.append(0.0)
+            continue
+        mious.append(max(compute_iou(pred_windows[0][:2], g) for g in gt_windows))
+    results["mIoU"] = 100.0 * sum(mious) / len(mious) if mious else 0
+
     return results
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print("Usage: python standalone_eval.py <pred.jsonl> [gt.jsonl]")
+        print("Usage: python evaluate.py <pred.jsonl> [gt.jsonl]")
         sys.exit(1)
     
     pred_path = sys.argv[1]
