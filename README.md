@@ -1,4 +1,4 @@
-# CGR: Training-Free Cluster-Guided Refinement for Video Temporal Grounding
+﻿# CGR: Training-Free Cluster-Guided Refinement for Video Temporal Grounding
 
 <p align="center">
   <a href="https://github.com/xuan2915/CGR"><img src="https://img.shields.io/badge/GitHub-CGR-blue"></a>
@@ -10,7 +10,7 @@
 
 ---
 
-## 📌 Overview
+## 馃搶 Overview
 
 **CGR** is a lightweight refinement procedure built on top of [VideoMind](https://github.com/yeliudev/VideoMind). It targets a practical problem in multimodal large language model (MLLM) grounding:
 
@@ -32,7 +32,7 @@ Windows shorter than 2 s and windows covering at least 95% of the video are skip
 
 ---
 
-## 🔑 Key Design
+## 馃攽 Key Design
 
 | Component | Description |
 |---|---|
@@ -49,24 +49,24 @@ The operating point `k=5`, `alpha=0.25` balances boundary coverage against effec
 
 ---
 
-## 🏗️ Repository Structure
+## 馃彈锔?Repository Structure
 
 ```text
 CGR/
-├── scripts/
-│   ├── infer_cgr.py        # Two-pass CGR inference
-│   ├── evaluate.py         # QVHighlights metric evaluation
-│   └── audit_crop.py       # Measures |W| and the refinement skip rate
-├── outputs/
-│   └── cgr_top5_pad025.jsonl   # Predictions of the default setting
-├── requirements.txt
-├── LICENSE
-└── README.md
+鈹溾攢鈹€ scripts/
+鈹?  鈹溾攢鈹€ infer_cgr.py        # Two-pass CGR inference
+鈹?  鈹溾攢鈹€ evaluate.py         # QVHighlights metric evaluation
+鈹?  鈹斺攢鈹€ audit_crop.py       # Measures |W| and the refinement skip rate
+鈹溾攢鈹€ outputs/
+鈹?  鈹斺攢鈹€ cgr_top5_pad025.jsonl   # Predictions of the operating point
+鈹溾攢鈹€ requirements.txt
+鈹溾攢鈹€ LICENSE
+鈹斺攢鈹€ README.md
 ```
 
 ---
 
-## 📦 Installation
+## 馃摝 Installation
 
 ### Prerequisites
 
@@ -126,7 +126,7 @@ The annotation file is expected to contain `vid`, `qid`, `query`, and `relevant_
 
 ---
 
-## 🚀 Quick Start
+## 馃殌 Quick Start
 
 ### Run CGR inference
 
@@ -173,7 +173,7 @@ The line also carries the crop geometry of that sample, so that the window and t
 
 ---
 
-## 🔮 Evaluation
+## 馃敭 Evaluation
 
 Evaluate the generated predictions:
 
@@ -208,7 +208,7 @@ The script prints the mean and median `|W|`, the median effective rate and the f
 
 ---
 
-## ⚙️ Hyperparameters
+## 鈿欙笍 Hyperparameters
 
 | Argument | Values | Default | Description |
 |---|---|---|---|
@@ -219,7 +219,7 @@ The script prints the mean and median `|W|`, the median effective rate and the f
 
 ---
 
-## 📊 Main Results
+## 馃搳 Main Results
 
 Results on the QVHighlights validation set (1,550 video-query pairs). Every configuration runs the same frozen VideoMind-7B grounder and differs only in which frames it sees: 64 frames in a single pass is the model as published, 96 frames in a single pass is the direct way to buy temporal resolution, and CGR is two passes of 64 frames.
 
@@ -233,14 +233,14 @@ Paired bootstrap over the 1,550 queries (10,000 resamples, 95% percentile interv
 
 | Comparison | Metric | Difference | 95% CI | p |
 | --- | --- | ---: | --- | ---: |
-| CGR − VideoMind 64f | R1@0.7 | +5.29 | [+3.55, +7.10] | <0.001 |
-| CGR − VideoMind 64f | mIoU | +3.39 | [+2.51, +4.29] | <0.001 |
-| CGR − conservative | R1@0.7 | +2.00 | [+0.26, +3.81] | 0.016 |
-| CGR − conservative | mIoU | +1.62 | [+0.74, +2.53] | <0.001 |
-| CGR − VideoMind 96f | R1@0.7 | +0.26 | [−2.00, +2.45] | 0.42 |
-| CGR − VideoMind 96f | mIoU | +0.20 | [−0.98, +1.39] | 0.37 |
-| VideoMind 96f − 64f | R1@0.7 | +5.03 | [+2.77, +7.35] | <0.001 |
-| VideoMind 96f − 64f | mIoU | +3.19 | [+2.02, +4.37] | <0.001 |
+| CGR 鈭?VideoMind 64f | R1@0.7 | +5.29 | [+3.55, +7.10] | <0.001 |
+| CGR 鈭?VideoMind 64f | mIoU | +3.39 | [+2.51, +4.29] | <0.001 |
+| CGR 鈭?conservative | R1@0.7 | +2.00 | [+0.26, +3.81] | 0.016 |
+| CGR 鈭?conservative | mIoU | +1.62 | [+0.74, +2.53] | <0.001 |
+| CGR 鈭?VideoMind 96f | R1@0.7 | +0.26 | [鈭?.00, +2.45] | 0.42 |
+| CGR 鈭?VideoMind 96f | mIoU | +0.20 | [鈭?.98, +1.39] | 0.37 |
+| VideoMind 96f 鈭?64f | R1@0.7 | +5.03 | [+2.77, +7.35] | <0.001 |
+| VideoMind 96f 鈭?64f | mIoU | +3.19 | [+2.02, +4.37] | <0.001 |
 
 The first four rows are the significant gains; the middle two are the "no detectable difference" group, which is what the memory claim rests on; the last two are the yardstick for how large a real gain looks on this benchmark.
 
@@ -276,8 +276,8 @@ Medians over the 1,550 validation queries, recovered from the crop geometry each
 
 | Strategy | Window (s) | % of video | Effective FPS | Skipped | R1@0.7 |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| VideoMind 64f, 1 pass | 150 | 100 | 0.43 | – | 44.71 |
-| VideoMind 96f, 1 pass | 150 | 100 | 0.64 | – | 49.74 |
+| VideoMind 64f, 1 pass | 150 | 100 | 0.43 | 鈥?| 44.71 |
+| VideoMind 96f, 1 pass | 150 | 100 | 0.64 | 鈥?| 49.74 |
 | conservative (k=10, alpha=0.50) | 130 | 87 | 0.49 | 43.7% | 48.00 |
 | CGR (k=1) | 42 | 28 | 1.52 | 2.9% | 47.10 |
 | CGR (k=3) | 68 | 45 | 0.94 | 14.5% | 49.48 |
@@ -291,7 +291,7 @@ The window is wider than the cluster itself because a couple of low-confidence c
 
 ---
 
-## 📌 Reproducibility Notes
+## 馃搶 Reproducibility Notes
 
 - Both passes process 64 frames, resized to the 36x28x28 to 64x28x28 pixel budget.
 - Pass 1 samples at 1.0 fps over the full video; Pass 2 decodes at 2.0 fps inside the crop window and then uniformly subsamples to the 64-frame budget.
@@ -301,7 +301,7 @@ The window is wider than the cluster itself because a couple of low-confidence c
 
 ---
 
-## 📖 Citation
+## 馃摉 Citation
 
 If you find this work helpful, please cite our paper:
 
@@ -315,10 +315,10 @@ If you find this work helpful, please cite our paper:
 
 ---
 
-## 📜 License
+## 馃摐 License
 
 This project is released under the [BSD-3-Clause License](LICENSE).
 
-## 🙏 Acknowledgement
+## 馃檹 Acknowledgement
 
 We thank the QVHighlights dataset and the upstream [VideoMind](https://github.com/yeliudev/VideoMind) project for providing the grounding codebase and checkpoints used in this work.
