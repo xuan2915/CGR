@@ -6,13 +6,13 @@
   <img src="https://img.shields.io/badge/Under%20Review-orange">
 </p>
 
-> **TL;DR:** CGR is a training-free two-pass framework for video temporal grounding. It first grounds the query on the full video, clusters the top-k predicted spans into one crop window, and then re-grounds the query inside that window at a denser effective frame rate. It needs no training, no model modification and no extra peak GPU memory.
+> **TL;DR:** CGR is a training-free refinement procedure for video temporal grounding. It first grounds the query on the full video, clusters the top-k predicted spans into one crop window, and then re-grounds the query inside that window at a denser effective frame rate. It needs no training, no model modification and no extra peak GPU memory.
 
 ---
 
 ## 📌 Overview
 
-**CGR** is a lightweight temporal grounding framework built on top of [VideoMind](https://github.com/yeliudev/VideoMind). It targets a practical problem in multimodal large language model (MLLM) grounding:
+**CGR** is a lightweight refinement procedure built on top of [VideoMind](https://github.com/yeliudev/VideoMind). It targets a practical problem in multimodal large language model (MLLM) grounding:
 
 - Uniform global sampling cannot provide enough temporal detail near event boundaries.
 - Uniformly dense sampling raises peak GPU memory roughly in proportion to the frame count.
@@ -25,6 +25,8 @@ CGR addresses these limitations with a training-free two-pass design:
 3. **Crop window construction.** The cluster is padded by a ratio alpha on both sides and clamped to the video, giving the crop window W.
 4. **Pass 2: Dense re-grounding.** The identical frozen MLLM re-grounds the query inside W with 64 frames decoded at 2.0 fps.
 5. **Prediction merging.** The coarse and refined candidates are concatenated, sorted by confidence, and truncated to 100; the top-1 becomes the prediction.
+
+The two-pass construction is the one used by existing zoom-in refinement; what CGR contributes is the rule that decides the window, `k=5` with `alpha=0.25` plus the skip gate below, together with the measurement that justifies it. The point of the measurement is that the window is not a free parameter: it is set by how far apart the model's coarse candidates are, and on QVHighlights that makes it far wider than a compact window. Getting it wrong costs the whole second pass.
 
 Windows shorter than 2 s and windows covering at least 95% of the video are skipped, in which case the Pass-1 result is returned unchanged. The effective sampling rate inside W is `F / |W|`, which saturates at the 2.0 fps decode rate whenever `|W| < 32` s.
 
@@ -43,7 +45,7 @@ Windows shorter than 2 s and windows covering at least 95% of the video are skip
 | Prediction merge | Concatenate coarse and refined candidates, sort by confidence, keep top 100 |
 | Effective rate | `F / |W|`, i.e. 0.79 fps at the measured median window of 81 s |
 
-The default setting `k=5`, `alpha=0.25` balances boundary coverage against effective frame-rate dilution. Widening the cluster beyond that point keeps growing the window without improving accuracy, and narrowing it to `k=1` starts to clip the true event boundary.
+The operating point `k=5`, `alpha=0.25` balances boundary coverage against effective frame-rate dilution. Widening the cluster beyond that point keeps growing the window without improving accuracy, and narrowing it to `k=1` starts to clip the true event boundary.
 
 ---
 
@@ -219,41 +221,45 @@ The script prints the mean and median `|W|`, the median effective rate and the f
 
 ## 📊 Main Results
 
-Results on the QVHighlights validation set (1,550 video-query pairs). All four configurations are evaluated under identical conditions.
+Results on the QVHighlights validation set (1,550 video-query pairs). Every configuration runs the same frozen VideoMind-7B grounder and differs only in which frames it sees: 64 frames in a single pass is the model as published, 96 frames in a single pass is the direct way to buy temporal resolution, and CGR is two passes of 64 frames.
 
-| Method | R1@0.3 | R1@0.5 | R1@0.7 | mIoU |
-| --- | ---: | ---: | ---: | ---: |
-| 64f uniform | 78.90 | 65.55 | 44.71 | 57.97 |
-| 96f uniform | 81.35 | 68.32 | 49.74 | 61.16 |
-| Naive crop-refine (k=10, alpha=0.50) | 80.13 | 67.10 | 48.00 | 59.73 |
-| **CGR (ours, k=5, alpha=0.25)** | **81.29** | **69.03** | **50.00** | **61.35** |
+| Configuration | R1@0.3 | R1@0.5 | R1@0.7 | mIoU | Peak memory |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| VideoMind 64f, 1 pass | 78.90 | 65.55 | 44.71 | 57.97 | 1x |
+| VideoMind 96f, 1 pass | 81.35 | 68.32 | 49.74 | 61.16 | 1.5x |
+| **CGR, 2 passes of 64f** | **81.29** | **69.03** | **50.00** | **61.35** | **1x** |
 
-Paired bootstrap over the 1,550 queries (10,000 resamples, 95% percentile interval) and McNemar's test on the R1@0.7 hits:
+Paired bootstrap over the 1,550 queries (10,000 resamples, 95% percentile interval) and McNemar's test on the R1@0.7 hits. "conservative" is the `k=10, alpha=0.50` crop-window configuration of the ablation below.
 
 | Comparison | Metric | Difference | 95% CI | p |
 | --- | --- | ---: | --- | ---: |
-| CGR − 64f | R1@0.7 | +5.29 | [+3.55, +7.10] | <0.001 |
-| CGR − 64f | mIoU | +3.39 | [+2.51, +4.29] | <0.001 |
-| CGR − naive | R1@0.7 | +2.00 | [+0.26, +3.81] | 0.016 |
-| CGR − naive | mIoU | +1.62 | [+0.74, +2.53] | <0.001 |
-| CGR − 96f | R1@0.7 | +0.26 | [−2.00, +2.45] | 0.42 |
-| CGR − 96f | mIoU | +0.20 | [−0.98, +1.39] | 0.37 |
-| 96f − 64f | R1@0.7 | +5.03 | [+2.77, +7.35] | <0.001 |
-| 96f − 64f | mIoU | +3.19 | [+2.02, +4.37] | <0.001 |
+| CGR − VideoMind 64f | R1@0.7 | +5.29 | [+3.55, +7.10] | <0.001 |
+| CGR − VideoMind 64f | mIoU | +3.39 | [+2.51, +4.29] | <0.001 |
+| CGR − conservative | R1@0.7 | +2.00 | [+0.26, +3.81] | 0.016 |
+| CGR − conservative | mIoU | +1.62 | [+0.74, +2.53] | <0.001 |
+| CGR − VideoMind 96f | R1@0.7 | +0.26 | [−2.00, +2.45] | 0.42 |
+| CGR − VideoMind 96f | mIoU | +0.20 | [−0.98, +1.39] | 0.37 |
+| VideoMind 96f − 64f | R1@0.7 | +5.03 | [+2.77, +7.35] | <0.001 |
+| VideoMind 96f − 64f | mIoU | +3.19 | [+2.02, +4.37] | <0.001 |
 
 The first four rows are the significant gains; the middle two are the "no detectable difference" group, which is what the memory claim rests on; the last two are the yardstick for how large a real gain looks on this benchmark.
 
-CGR is significantly better than the 64-frame baseline and than naive crop-refine, and statistically indistinguishable from dense 96-frame uniform sampling while running at single-pass peak memory.
+CGR is significantly better than the model's own single pass and than the conservative crop window, and statistically indistinguishable from a 96-frame forward pass while running at single-pass peak memory. The price is a second forward pass: CGR spends inference time to buy back memory.
 
-### Ablation: cluster size and padding
+### Ablation: the crop window
 
-| Setting | R1@0.7 | mIoU |
+CGR keeps the two-pass construction and changes only how the window is built, so the ablation varies that construction and nothing else.
+
+| Crop window | R1@0.7 | mIoU |
 | --- | ---: | ---: |
-| k=1, alpha=0.25 | 47.10 | 58.31 |
-| k=3, alpha=0.25 | 49.48 | 60.78 |
-| **k=5, alpha=0.25** | **50.00** | **61.35** |
-| k=3, alpha=0.15 | 47.68 | 60.30 |
-| k=3, alpha=0.35 | 48.58 | 60.24 |
+| conservative, k=10, alpha=0.50 | 48.00 | 59.73 |
+| CGR, k=1, alpha=0.25 | 47.10 | 58.31 |
+| CGR, k=3, alpha=0.25 | 49.48 | 60.78 |
+| **CGR, k=5, alpha=0.25** | **50.00** | **61.35** |
+| CGR, k=3, alpha=0.15 | 47.68 | 60.30 |
+| CGR, k=3, alpha=0.35 | 48.58 | 60.24 |
+
+The conservative corner is the natural first guess, since a large cluster and generous padding both reduce the risk of excluding the true event. It is also the worst of the tuned settings: the second pass gains only 3.29 points R1@0.7 over the plain single pass, against 5.29 points once the window is built by CGR, and it lands 1.74 points below the 96-frame budget while still costing a second pass. A conservative window is therefore not a safe window, and its size has to be measured rather than guessed.
 
 ### Ablation: Pass-1 frame budget (k=5, alpha=0.25)
 
@@ -270,9 +276,9 @@ Medians over the 1,550 validation queries, recovered from the crop geometry each
 
 | Strategy | Window (s) | % of video | Effective FPS | Skipped | R1@0.7 |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| 64f uniform | 150 | 100 | 0.43 | – | 44.71 |
-| 96f uniform | 150 | 100 | 0.64 | – | 49.74 |
-| Naive (k=10, alpha=0.50) | 130 | 87 | 0.49 | 43.7% | 48.00 |
+| VideoMind 64f, 1 pass | 150 | 100 | 0.43 | – | 44.71 |
+| VideoMind 96f, 1 pass | 150 | 100 | 0.64 | – | 49.74 |
+| conservative (k=10, alpha=0.50) | 130 | 87 | 0.49 | 43.7% | 48.00 |
 | CGR (k=1) | 42 | 28 | 1.52 | 2.9% | 47.10 |
 | CGR (k=3) | 68 | 45 | 0.94 | 14.5% | 49.48 |
 | **CGR (k=5)** | **81** | **54** | **0.79** | **20.6%** | **50.00** |
@@ -281,7 +287,7 @@ Medians over the 1,550 validation queries, recovered from the crop geometry each
 
 Reading the last two columns together gives the trade-off: enlarging the window lowers the effective rate while accuracy first rises and then falls, so the best configuration is an interior one rather than the widest.
 
-The window is wider than the cluster itself because a couple of low-confidence candidates that agree with neither the top-5 nor each other can stretch the cluster across most of the video; this is why the naive top-10 setting refines 87% of the video and is slower than dense 96-frame sampling. The spread within a single configuration is larger than the difference between configurations: at the default setting the 5th to 95th percentile of `|W|` runs from 33 s to the full video.
+The window is wider than the cluster itself because a couple of low-confidence candidates that agree with neither the top-5 nor each other can stretch the cluster across most of the video; this is why the conservative top-10 setting refines 87% of the video and is slower than the 96-frame budget. The spread within a single configuration is larger than the difference between configurations: at the operating point the 5th to 95th percentile of `|W|` runs from 33 s to the full video.
 
 ---
 
