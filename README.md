@@ -1,7 +1,7 @@
 # CGR: Training-Free Cluster-Guided Refinement for Video Temporal Grounding
 
 <p align="center">
-  <a href="https://github.com/xuan2915/BVR"><img src="https://img.shields.io/badge/GitHub-CGR-blue"></a>
+  <a href="https://github.com/xuan2915/CGR"><img src="https://img.shields.io/badge/GitHub-CGR-blue"></a>
   <img src="https://img.shields.io/badge/License-BSD--3--Clause-green">
   <img src="https://img.shields.io/badge/Under%20Review-orange">
 </p>
@@ -50,7 +50,7 @@ The default setting `k=5`, `alpha=0.25` balances boundary coverage against effec
 ## 🏗️ Repository Structure
 
 ```text
-BVR/
+CGR/
 ├── scripts/
 │   ├── infer_cgr.py        # Two-pass CGR inference
 │   ├── evaluate.py         # QVHighlights metric evaluation
@@ -76,8 +76,8 @@ BVR/
 ### 1. Clone this repository
 
 ```bash
-git clone https://github.com/xuan2915/BVR.git
-cd BVR
+git clone https://github.com/xuan2915/CGR.git
+cd CGR
 ```
 
 ### 2. Prepare the base MLLM grounding environment
@@ -93,7 +93,7 @@ pip install -r requirements.txt
 Return to this repository and install the remaining requirements:
 
 ```bash
-cd ../BVR
+cd ../CGR
 pip install -r requirements.txt
 ```
 
