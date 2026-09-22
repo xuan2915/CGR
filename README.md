@@ -233,9 +233,15 @@ Paired bootstrap over the 1,550 queries (10,000 resamples, 95% percentile interv
 | Comparison | Metric | Difference | 95% CI | p |
 | --- | --- | ---: | --- | ---: |
 | CGR − 64f | R1@0.7 | +5.29 | [+3.55, +7.10] | <0.001 |
+| CGR − 64f | mIoU | +3.39 | [+2.51, +4.29] | <0.001 |
 | CGR − naive | R1@0.7 | +2.00 | [+0.26, +3.81] | 0.016 |
+| CGR − naive | mIoU | +1.62 | [+0.74, +2.53] | <0.001 |
 | CGR − 96f | R1@0.7 | +0.26 | [−2.00, +2.45] | 0.42 |
+| CGR − 96f | mIoU | +0.20 | [−0.98, +1.39] | 0.37 |
 | 96f − 64f | R1@0.7 | +5.03 | [+2.77, +7.35] | <0.001 |
+| 96f − 64f | mIoU | +3.19 | [+2.02, +4.37] | <0.001 |
+
+The first four rows are the significant gains; the middle two are the "no detectable difference" group, which is what the memory claim rests on; the last two are the yardstick for how large a real gain looks on this benchmark.
 
 CGR is significantly better than the 64-frame baseline and than naive crop-refine, and statistically indistinguishable from dense 96-frame uniform sampling while running at single-pass peak memory.
 
@@ -260,20 +266,22 @@ Coarse Pass-1 predictions from too few frames are unreliable, the cluster inheri
 
 ### Measured crop-window geometry
 
-Medians over the 1,550 validation queries, recovered from the crop geometry each run logged. A skipped refinement is counted as a window of the full video length, so the effective rate `F / |W|` is defined identically for every row.
+Medians over the 1,550 validation queries, recovered from the crop geometry each run logged; alpha=0.25 unless stated. A skipped refinement is counted as a window of the full video length, so the effective rate `F / |W|` is defined for every row, and the two uniform baselines perform no refinement at all.
 
-| Strategy | Window (s) | Window (%) | Effective FPS | Skipped |
-| --- | ---: | ---: | ---: | ---: |
-| 64f uniform | 150 | 100% | 0.43 | – |
-| 96f uniform | 150 | 100% | 0.64 | – |
-| Naive (top10, alpha=0.50) | 130 | 87% | 0.49 | 43.7% |
-| CGR (top1, alpha=0.25) | 42 | 28% | 1.52 | 2.9% |
-| CGR (top3, alpha=0.25) | 68 | 45% | 0.94 | 14.5% |
-| **CGR (top5, alpha=0.25)** | **81** | **54%** | **0.79** | **20.6%** |
-| CGR (top3, alpha=0.15) | 60 | 40% | 1.07 | 10.8% |
-| CGR (top3, alpha=0.35) | 73 | 49% | 0.88 | 17.1% |
+| Strategy | Window (s) | % of video | Effective FPS | Skipped | R1@0.7 |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| 64f uniform | 150 | 100 | 0.43 | – | 44.71 |
+| 96f uniform | 150 | 100 | 0.64 | – | 49.74 |
+| Naive (k=10, alpha=0.50) | 130 | 87 | 0.49 | 43.7% | 48.00 |
+| CGR (k=1) | 42 | 28 | 1.52 | 2.9% | 47.10 |
+| CGR (k=3) | 68 | 45 | 0.94 | 14.5% | 49.48 |
+| **CGR (k=5)** | **81** | **54** | **0.79** | **20.6%** | **50.00** |
+| CGR (k=3, alpha=0.15) | 60 | 40 | 1.07 | 10.8% | 47.68 |
+| CGR (k=3, alpha=0.35) | 73 | 49 | 0.88 | 17.1% | 48.58 |
 
-The window is wider than the cluster itself because a couple of low-confidence candidates that agree with neither the top-5 nor each other can stretch the cluster across most of the video; this is why the naive top-10 setting refines 87% of the video and is slower than dense 96-frame sampling. Accuracy peaks at the intermediate windows around the default setting.
+Reading the last two columns together gives the trade-off: enlarging the window lowers the effective rate while accuracy first rises and then falls, so the best configuration is an interior one rather than the widest.
+
+The window is wider than the cluster itself because a couple of low-confidence candidates that agree with neither the top-5 nor each other can stretch the cluster across most of the video; this is why the naive top-10 setting refines 87% of the video and is slower than dense 96-frame sampling. The spread within a single configuration is larger than the difference between configurations: at the default setting the 5th to 95th percentile of `|W|` runs from 33 s to the full video.
 
 ---
 
