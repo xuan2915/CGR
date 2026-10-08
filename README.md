@@ -49,19 +49,19 @@ The operating point `k=5`, `alpha=0.25` balances boundary coverage against effec
 
 ---
 
-## 馃彈锔?Repository Structure
+## 🏗️ Repository Structure
 
 ```text
 CGR/
-鈹溾攢鈹€ scripts/
-鈹?  鈹溾攢鈹€ infer_cgr.py        # Two-pass CGR inference
-鈹?  鈹溾攢鈹€ evaluate.py         # QVHighlights metric evaluation
-鈹?  鈹斺攢鈹€ audit_crop.py       # Measures |W| and the refinement skip rate
-鈹溾攢鈹€ outputs/
-鈹?  鈹斺攢鈹€ cgr_top5_pad025.jsonl   # Predictions of the operating point
-鈹溾攢鈹€ requirements.txt
-鈹溾攢鈹€ LICENSE
-鈹斺攢鈹€ README.md
+├── scripts/
+│   ├── infer_cgr.py        # Two-pass CGR inference
+│   ├── evaluate.py         # QVHighlights metric evaluation
+│   └── audit_crop.py       # Measures |W| and the refinement skip rate
+├── outputs/
+│   └── cgr_top5_pad025.jsonl   # Predictions of the operating point
+├── requirements.txt
+├── LICENSE
+└── README.md
 ```
 
 ---
@@ -233,14 +233,14 @@ Paired bootstrap over the 1,550 queries (10,000 resamples, 95% percentile interv
 
 | Comparison | Metric | Difference | 95% CI | p |
 | --- | --- | ---: | --- | ---: |
-| CGR 鈭?VideoMind 64f | R1@0.7 | +5.29 | [+3.55, +7.10] | <0.001 |
-| CGR 鈭?VideoMind 64f | mIoU | +3.39 | [+2.51, +4.29] | <0.001 |
-| CGR 鈭?conservative | R1@0.7 | +2.00 | [+0.26, +3.81] | 0.016 |
-| CGR 鈭?conservative | mIoU | +1.62 | [+0.74, +2.53] | <0.001 |
-| CGR 鈭?VideoMind 96f | R1@0.7 | +0.26 | [鈭?.00, +2.45] | 0.42 |
-| CGR 鈭?VideoMind 96f | mIoU | +0.20 | [鈭?.98, +1.39] | 0.37 |
-| VideoMind 96f 鈭?64f | R1@0.7 | +5.03 | [+2.77, +7.35] | <0.001 |
-| VideoMind 96f 鈭?64f | mIoU | +3.19 | [+2.02, +4.37] | <0.001 |
+| CGR − VideoMind 64f | R1@0.7 | +5.29 | [+3.55, +7.10] | <0.001 |
+| CGR − VideoMind 64f | mIoU | +3.39 | [+2.51, +4.29] | <0.001 |
+| CGR − conservative | R1@0.7 | +2.00 | [+0.26, +3.81] | 0.016 |
+| CGR − conservative | mIoU | +1.62 | [+0.74, +2.53] | <0.001 |
+| CGR − VideoMind 96f | R1@0.7 | +0.26 | [−2.00, +2.45] | 0.42 |
+| CGR − VideoMind 96f | mIoU | +0.20 | [−0.98, +1.39] | 0.37 |
+| VideoMind 96f − 64f | R1@0.7 | +5.03 | [+2.77, +7.35] | <0.001 |
+| VideoMind 96f − 64f | mIoU | +3.19 | [+2.02, +4.37] | <0.001 |
 
 The first four rows are the significant gains; the middle two are the "no detectable difference" group, which is what the memory claim rests on; the last two are the yardstick for how large a real gain looks on this benchmark.
 
@@ -276,8 +276,8 @@ Medians over the 1,550 validation queries, recovered from the crop geometry each
 
 | Strategy | Window (s) | % of video | Effective FPS | Skipped | R1@0.7 |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| VideoMind 64f, 1 pass | 150 | 100 | 0.43 | 鈥?| 44.71 |
-| VideoMind 96f, 1 pass | 150 | 100 | 0.64 | 鈥?| 49.74 |
+| VideoMind 64f, 1 pass | 150 | 100 | 0.43 | – | 44.71 |
+| VideoMind 96f, 1 pass | 150 | 100 | 0.64 | – | 49.74 |
 | conservative (k=10, alpha=0.50) | 130 | 87 | 0.49 | 43.7% | 48.00 |
 | CGR (k=1) | 42 | 28 | 1.52 | 2.9% | 47.10 |
 | CGR (k=3) | 68 | 45 | 0.94 | 14.5% | 49.48 |
