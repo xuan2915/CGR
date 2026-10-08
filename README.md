@@ -10,7 +10,7 @@
 
 ---
 
-## 馃搶 Overview
+## 📌 Overview
 
 **CGR** is a lightweight refinement procedure built on top of [VideoMind](https://github.com/yeliudev/VideoMind). It targets a practical problem in multimodal large language model (MLLM) grounding:
 
@@ -32,7 +32,7 @@ Windows shorter than 2 s and windows covering at least 95% of the video are skip
 
 ---
 
-## 馃攽 Key Design
+## 🔑 Key Design
 
 | Component | Description |
 |---|---|
@@ -66,7 +66,7 @@ CGR/
 
 ---
 
-## 馃摝 Installation
+## 📦 Installation
 
 ### Prerequisites
 
@@ -126,7 +126,7 @@ The annotation file is expected to contain `vid`, `qid`, `query`, and `relevant_
 
 ---
 
-## 馃殌 Quick Start
+## 🚀 Quick Start
 
 ### Run CGR inference
 
@@ -173,7 +173,7 @@ The line also carries the crop geometry of that sample, so that the window and t
 
 ---
 
-## 馃敭 Evaluation
+## 🔮 Evaluation
 
 Evaluate the generated predictions:
 
@@ -208,7 +208,7 @@ The script prints the mean and median `|W|`, the median effective rate and the f
 
 ---
 
-## 鈿欙笍 Hyperparameters
+## ⚙️ Hyperparameters
 
 | Argument | Values | Default | Description |
 |---|---|---|---|
@@ -219,7 +219,7 @@ The script prints the mean and median `|W|`, the median effective rate and the f
 
 ---
 
-## 馃搳 Main Results
+## 📊 Main Results
 
 Results on the QVHighlights validation set (1,550 video-query pairs). Every configuration runs the same frozen VideoMind-7B grounder and differs only in which frames it sees: 64 frames in a single pass is the model as published, 96 frames in a single pass is the direct way to buy temporal resolution, and CGR is two passes of 64 frames.
 
@@ -291,7 +291,7 @@ The window is wider than the cluster itself because a couple of low-confidence c
 
 ---
 
-## 馃搶 Reproducibility Notes
+## 📌 Reproducibility Notes
 
 - Both passes process 64 frames, resized to the 36x28x28 to 64x28x28 pixel budget.
 - Pass 1 samples at 1.0 fps over the full video; Pass 2 decodes at 2.0 fps inside the crop window and then uniformly subsamples to the 64-frame budget.
@@ -301,7 +301,7 @@ The window is wider than the cluster itself because a couple of low-confidence c
 
 ---
 
-## 馃摉 Citation
+## 📖 Citation
 
 If you find this work helpful, please cite our paper:
 
@@ -315,10 +315,10 @@ If you find this work helpful, please cite our paper:
 
 ---
 
-## 馃摐 License
+## 📜 License
 
 This project is released under the [BSD-3-Clause License](LICENSE).
 
-## 馃檹 Acknowledgement
+## 🙏 Acknowledgement
 
 We thank the QVHighlights dataset and the upstream [VideoMind](https://github.com/yeliudev/VideoMind) project for providing the grounding codebase and checkpoints used in this work.
