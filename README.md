@@ -1,4 +1,4 @@
-﻿# CGR: Training-Free Cluster-Guided Refinement for Video Temporal Grounding
+# CGR: Training-Free Cluster-Guided Refinement for Video Temporal Grounding
 
 <p align="center">
   <a href="https://github.com/xuan2915/CGR"><img src="https://img.shields.io/badge/GitHub-CGR-blue"></a>
@@ -15,15 +15,15 @@
 **CGR** is a lightweight refinement procedure built on top of [VideoMind](https://github.com/yeliudev/VideoMind). It targets a practical problem in multimodal large language model (MLLM) grounding:
 
 - Uniform global sampling cannot provide enough temporal detail near event boundaries.
-- Uniformly dense sampling raises peak GPU memory roughly in proportion to the frame count.
+- Uniformly dense sampling raises peak GPU memory, which caps how many frames a single forward pass can read.
 - Existing coarse-to-fine refinement can dilute the effective frame rate when the crop window is too wide, which is what happens when the window is built from an unfiltered set of candidates.
 
 CGR addresses these limitations with a training-free two-pass design:
 
-1. **Pass 1: Global coarse grounding.** The frozen MLLM localizes the query on the full video with 64 frames at 1.0 fps and returns 60 ranked candidate spans.
+1. **Pass 1: Global coarse grounding.** The frozen MLLM localizes the query on the full video with 64 frames sampled uniformly over it, which is 0.43 fps on a 150 s clip, and returns 60 ranked candidate spans.
 2. **Cluster construction.** The top-k candidates are merged into a single temporal cluster spanning from their minimum start to their maximum end.
 3. **Crop window construction.** The cluster is padded by a ratio alpha on both sides and clamped to the video, giving the crop window W.
-4. **Pass 2: Dense re-grounding.** The identical frozen MLLM re-grounds the query inside W with 64 frames decoded at 2.0 fps.
+4. **Pass 2: Dense re-grounding.** The identical frozen MLLM re-grounds the query inside W with 64 frames sampled uniformly within it, decoded at a nominal 2.0 fps.
 5. **Prediction merging.** The coarse and refined candidates are concatenated, sorted by confidence, and truncated to 100; the top-1 becomes the prediction.
 
 The two-pass construction is the one used by existing zoom-in refinement; what CGR contributes is the rule that decides the window, `k=5` with `alpha=0.25` plus the skip gate below, together with the measurement that justifies it. The point of the measurement is that the window is not a free parameter: it is set by how far apart the model's coarse candidates are, and on QVHighlights that makes it far wider than a compact window. Getting it wrong costs the whole second pass.
@@ -36,12 +36,12 @@ Windows shorter than 2 s and windows covering at least 95% of the video are skip
 
 | Component | Description |
 |---|---|
-| Global grounding | Full video, 64 frames at 1.0 fps |
+| Global grounding | Full video, 64 uniform frames |
 | Candidate set | 60 spans from the regression head, sorted by confidence |
 | Prediction cluster | Top-k spans merged as `[min start, max end]` |
 | Padding ratio | alpha = 0.25 by default |
 | Crop window | Cluster padded by alpha, clamped to the video |
-| Refinement pass | 64 frames decoded inside W at 2.0 fps |
+| Refinement pass | 64 uniform frames inside W, decoded at a nominal 2.0 fps |
 | Prediction merge | Concatenate coarse and refined candidates, sort by confidence, keep top 100 |
 | Effective rate | `F / |W|`, i.e. 0.79 fps at the measured median window of 81 s |
 
@@ -221,15 +221,17 @@ The script prints the mean and median `|W|`, the median effective rate and the f
 
 ## 📊 Main Results
 
-Results on the QVHighlights validation set (1,550 video-query pairs). Every configuration runs the same frozen VideoMind-7B grounder and differs only in which frames it sees: 64 frames in a single pass is the model as published, 96 frames in a single pass is the direct way to buy temporal resolution, and CGR is two passes of 64 frames.
+Results on the QVHighlights validation set (1,550 video-query pairs). Every configuration runs the same frozen VideoMind-7B grounder and differs only in which frames it sees: 64 frames in a single pass is the budget CGR starts from, 96 frames in a single pass is the direct way to buy temporal resolution, and CGR is two passes of 64 frames. The 64-frame budget is our choice rather than a published setting; VideoMind allows the grounder up to 150 frames at 1 fps, and we cap it at 64 because that is the budget the method redistributes.
 
 | Configuration | R1@0.3 | R1@0.5 | R1@0.7 | mIoU | Peak memory |
 | --- | ---: | ---: | ---: | ---: | ---: |
-| VideoMind 64f, 1 pass | 78.90 | 65.55 | 44.71 | 57.97 | 1x |
-| VideoMind 96f, 1 pass | 81.35 | 68.32 | 49.74 | 61.16 | 1.5x |
-| **CGR, 2 passes of 64f** | **81.29** | **69.03** | **50.00** | **61.35** | **1x** |
+| VideoMind 64f, 1 pass | 78.90 | 65.55 | 44.71 | 57.97 | 20.9 GiB |
+| VideoMind 96f, 1 pass | 81.35 | 68.32 | 49.74 | 61.16 | 24.9 GiB |
+| **CGR, 2 passes of 64f** | **81.29** | **69.03** | **50.00** | **61.35** | **20.9 GiB** |
 
-Paired bootstrap over the 1,550 queries (10,000 resamples, 95% percentile interval) and McNemar's test on the R1@0.7 hits. "conservative" is the `k=10, alpha=0.50` crop-window configuration of the ablation below.
+Peak memory is the maximum allocation reported by `torch.cuda.max_memory_allocated`, measured on a single NVIDIA L20 (46 GiB) at batch size 1. It follows the frames in one forward pass rather than the frames examined in total, so CGR reads 128 frames per refined query at the footprint of one 64-frame pass.
+
+Paired bootstrap over the 1,550 queries (10,000 resamples, 95% percentile interval) and McNemar's test on the R1@0.7 hits. "conservative" is the `k=10, alpha=0.50` crop-window configuration of the ablation below: it applies the padding ratio that temporal zoom-in already uses to the hull of ten candidates instead of one.
 
 | Comparison | Metric | Difference | 95% CI | p |
 | --- | --- | ---: | --- | ---: |
@@ -244,7 +246,7 @@ Paired bootstrap over the 1,550 queries (10,000 resamples, 95% percentile interv
 
 The first four rows are the significant gains; the middle two are the "no detectable difference" group, which is what the memory claim rests on; the last two are the yardstick for how large a real gain looks on this benchmark.
 
-CGR is significantly better than the model's own single pass and than the conservative crop window, and statistically indistinguishable from a 96-frame forward pass while running at single-pass peak memory. The price is a second forward pass: CGR spends inference time to buy back memory.
+CGR is significantly better than the model's own single pass and than the conservative crop window, and statistically indistinguishable from a 96-frame forward pass while peaking at 20.9 GiB against 24.9 GiB for the denser budget. The price is a second forward pass: a refined query takes 6.00 s end to end against 3.15 s for a single 64-frame pass, so CGR spends time to buy back memory.
 
 ### Ablation: the crop window
 
@@ -259,7 +261,7 @@ CGR keeps the two-pass construction and changes only how the window is built, so
 | CGR, k=3, alpha=0.15 | 47.68 | 60.30 |
 | CGR, k=3, alpha=0.35 | 48.58 | 60.24 |
 
-The conservative corner is the natural first guess, since a large cluster and generous padding both reduce the risk of excluding the true event. It is also the worst of the tuned settings: the second pass gains only 3.29 points R1@0.7 over the plain single pass, against 5.29 points once the window is built by CGR, and it lands 1.74 points below the 96-frame budget while still costing a second pass. A conservative window is therefore not a safe window, and its size has to be measured rather than guessed.
+The conservative corner combines the padding ratio that temporal zoom-in already uses with a wide ten-candidate cluster, so it is the closest published analogue of the window we build, and it is also the worst of the tuned settings: the second pass gains only 3.29 points R1@0.7 over the plain single pass, against 5.29 points once the window is built by CGR, and it lands 1.74 points below the 96-frame budget while still costing a second pass. A conservative window is therefore not a safe window, and its size has to be measured rather than guessed.
 
 ### Ablation: Pass-1 frame budget (k=5, alpha=0.25)
 
@@ -294,7 +296,7 @@ The window is wider than the cluster itself because a couple of low-confidence c
 ## 📌 Reproducibility Notes
 
 - Both passes process 64 frames, resized to the 36x28x28 to 64x28x28 pixel budget.
-- Pass 1 samples at 1.0 fps over the full video; Pass 2 decodes at 2.0 fps inside the crop window and then uniformly subsamples to the 64-frame budget.
+- Pass 1 decodes the full video at 1.0 fps and keeps 64 uniform frames; Pass 2 decodes the crop window at 2.0 fps and keeps 64 uniform frames, so the realised rate is `min(2.0, 64/|W|)`.
 - Decoding is greedy with 256 maximum output tokens.
 - Predictions are rounded to the QVHighlights 2.0-second annotation unit.
 - The example prediction file in `outputs/cgr_top5_pad025.jsonl` reproduces the paper's default-setting metrics with `scripts/evaluate.py` and can be evaluated without a GPU.
